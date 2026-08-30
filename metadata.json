@@ -1,0 +1,6 @@
+{
+  "name": "BookStore",
+  "description": "A comprehensive bookstore with AI book recommendations, personalized library shelves, marketplace, order tracking, and admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
