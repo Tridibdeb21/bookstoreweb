@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import {
   BookOpen,
@@ -8,7 +8,11 @@ import {
   Bot,
   Search,
   ShieldCheck,
-  User
+  User,
+  LogIn,
+  LogOut,
+  ChevronDown,
+  PackageCheck
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -19,10 +23,27 @@ export const Navbar: React.FC = () => {
     setIsCartOpen,
     setIsAiChatOpen,
     setIsAiRecommendOpen,
+    setIsAuthModalOpen,
+    isAuthenticated,
     user,
+    logout,
     searchQuery,
     setSearchQuery
   } = useStore();
+
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -131,7 +152,7 @@ export const Navbar: React.FC = () => {
             </button>
 
             {/* Admin Portal Shortcut if Admin */}
-            {user.role === 'admin' && (
+            {isAuthenticated && user.role === 'admin' && (
               <button
                 id="nav-admin-btn"
                 onClick={() => setActiveView('admin')}
@@ -147,32 +168,112 @@ export const Navbar: React.FC = () => {
               </button>
             )}
 
-            {/* Profile Navigation */}
-            <button
-              id="nav-profile-btn"
-              onClick={() => setActiveView('profile')}
-              className={`p-1.5 rounded-full transition cursor-pointer flex items-center ${
-                activeView === 'profile'
-                  ? 'ring-2 ring-amber-400 bg-stone-800'
-                  : 'hover:bg-stone-800'
-              }`}
-              title="Profile"
-            >
-              {user.profileImageBase64 ? (
-                <img
-                  src={`data:image/jpeg;base64,${user.profileImageBase64}`}
-                  alt="Profile"
-                  className="w-7 h-7 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-stone-700 flex items-center justify-center text-amber-400 text-xs font-bold">
-                  <User className="w-4 h-4" />
-                </div>
-              )}
-            </button>
+            {/* Authentication / Profile Button */}
+            {!isAuthenticated ? (
+              <button
+                id="nav-signin-btn"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs shadow-md transition cursor-pointer"
+                title="Sign In / Register"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            ) : (
+              <div className="relative" ref={menuRef}>
+                <button
+                  id="nav-profile-btn"
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className={`p-1 pl-1.5 pr-2 rounded-full transition cursor-pointer flex items-center gap-1.5 ${
+                    activeView === 'profile'
+                      ? 'ring-2 ring-amber-400 bg-stone-800'
+                      : 'hover:bg-stone-800 text-stone-300'
+                  }`}
+                  title="User Profile Menu"
+                >
+                  {user.profileImageBase64 ? (
+                    <img
+                      src={`data:image/jpeg;base64,${user.profileImageBase64}`}
+                      alt="Profile"
+                      className="w-7 h-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-stone-700 flex items-center justify-center text-amber-400 text-xs font-bold">
+                      {user.email ? user.email[0].toUpperCase() : <User className="w-4 h-4" />}
+                    </div>
+                  )}
+                  <span className="text-xs font-semibold max-w-[80px] truncate hidden lg:inline">
+                    {user.email.split('@')[0]}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-stone-400" />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-stone-900 border border-stone-800 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-4 py-2.5 border-b border-stone-800">
+                      <p className="text-xs font-bold text-stone-200 truncate">{user.email}</p>
+                      <span className="inline-block mt-0.5 text-[10px] uppercase tracking-wider font-extrabold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                        {user.role === 'admin' ? 'Administrator' : 'Reader Account'}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setActiveView('profile');
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-xs font-semibold text-stone-300 hover:bg-stone-800 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                    >
+                      <User className="w-4 h-4 text-amber-400" />
+                      <span>My Profile & Reading Goals</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveView('orders');
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-xs font-semibold text-stone-300 hover:bg-stone-800 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                    >
+                      <PackageCheck className="w-4 h-4 text-emerald-400" />
+                      <span>Order History</span>
+                    </button>
+
+                    {user.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          setActiveView('admin');
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-semibold text-stone-300 hover:bg-stone-800 hover:text-white flex items-center gap-2.5 transition cursor-pointer"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-amber-400" />
+                        <span>Admin Control Center</span>
+                      </button>
+                    )}
+
+                    <div className="border-t border-stone-800 my-1" />
+
+                    <button
+                      id="nav-signout-btn"
+                      onClick={() => {
+                        logout();
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-xs font-bold text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 flex items-center gap-2.5 transition cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
     </header>
   );
 };
+

@@ -47,6 +47,7 @@ export const BookDetailsModal: React.FC = () => {
   const [shelfStatus, setShelfStatus] = useState<'To Read' | 'Reading' | 'Finished'>('To Read');
   const [capsuleNote, setCapsuleNote] = useState('');
   const [shelfSuccess, setShelfSuccess] = useState(false);
+  const [isCartAdded, setIsCartAdded] = useState(false);
 
   if (!selectedBook) return null;
 
@@ -262,11 +263,28 @@ export const BookDetailsModal: React.FC = () => {
               <div className="flex flex-wrap gap-3 pt-2">
                 <button
                   id="details-add-to-cart-btn"
-                  onClick={() => addToCart(selectedBook, 1)}
-                  className="flex-1 min-w-[160px] flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-sm shadow-lg shadow-amber-500/20 transition cursor-pointer"
+                  onClick={() => {
+                    addToCart(selectedBook, 1);
+                    setIsCartAdded(true);
+                    setTimeout(() => setIsCartAdded(false), 1800);
+                  }}
+                  className={`flex-1 min-w-[160px] flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-sm shadow-lg transition-all cursor-pointer ${
+                    isCartAdded
+                      ? 'bg-emerald-600 text-white shadow-emerald-600/30'
+                      : 'bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-amber-500/20'
+                  }`}
                 >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Add to Cart</span>
+                  {isCartAdded ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Added to Cart! ✓</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>Add to Cart</span>
+                    </>
+                  )}
                 </button>
 
                 <button

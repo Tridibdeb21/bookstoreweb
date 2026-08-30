@@ -20,7 +20,9 @@ import { ProfileView } from './components/profile/ProfileView';
 import { WishlistView } from './components/profile/WishlistView';
 import { OrderHistoryView } from './components/profile/OrderHistoryView';
 import { OrderDetailsModal } from './components/profile/OrderDetailsModal';
+import { AuthModal } from './components/auth/AuthModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { Toast } from './components/common/Toast';
 import { Sparkles, BookOpen, Bot } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -136,6 +138,10 @@ export const App: React.FC = () => {
       <CartDrawer />
       <CheckoutModal />
       <OrderDetailsModal />
+      <AuthModal />
+
+      {/* Global Notifications */}
+      <Toast />
 
       {/* Bottom Nav for Mobile */}
       <BottomNav />

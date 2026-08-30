@@ -11,11 +11,14 @@ import {
   ShieldCheck,
   Heart,
   Edit2,
-  Check
+  Check,
+  LogOut,
+  LogIn,
+  KeyRound
 } from 'lucide-react';
 
 export const ProfileView: React.FC = () => {
-  const { user, updateUserProfile, setActiveView, shelf } = useStore();
+  const { user, updateUserProfile, setActiveView, shelf, isAuthenticated, setIsAuthModalOpen, logout } = useStore();
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [newGoal, setNewGoal] = useState(user.yearlyGoal.toString());
 
@@ -43,6 +46,29 @@ export const ProfileView: React.FC = () => {
     const newRole = user.role === 'admin' ? 'user' : 'admin';
     updateUserProfile({ role: newRole });
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-md mx-auto my-12 bg-white rounded-3xl p-8 border border-stone-200 shadow-xl text-center space-y-6">
+        <div className="w-16 h-16 rounded-3xl bg-amber-500/20 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+          <KeyRound className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="font-serif text-2xl font-bold text-stone-900">Sign In to Your Account</h2>
+          <p className="text-sm text-stone-500">
+            Sign in to track your reading goals, manage your digital bookshelf, view past orders, and earn reading badges.
+          </p>
+        </div>
+        <button
+          onClick={() => setIsAuthModalOpen(true)}
+          className="w-full py-3.5 px-6 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <LogIn className="w-4 h-4" />
+          <span>Sign In / Create Account</span>
+        </button>
+      </div>
+    );
+  }
 
   const BADGES = [
     {
@@ -124,12 +150,29 @@ export const ProfileView: React.FC = () => {
 
           <p className="text-xs text-stone-500 font-medium">{user.email}</p>
 
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-2">
             <button
               onClick={toggleRole}
               className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs border border-stone-300 transition cursor-pointer"
             >
-              Switch Role to: {user.role === 'admin' ? 'Regular User' : 'Administrator'}
+              Role: {user.role === 'admin' ? 'Administrator' : 'Customer'} (Click to Toggle)
+            </button>
+
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300 transition cursor-pointer flex items-center gap-1.5"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Switch User</span>
+            </button>
+
+            <button
+              id="profile-signout-btn"
+              onClick={logout}
+              className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition cursor-pointer flex items-center gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
             </button>
           </div>
         </div>

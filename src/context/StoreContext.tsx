@@ -26,6 +26,14 @@ import {
 } from '../data/mockData';
 import { CryptoUtils } from '../utils/crypto';
 
+export interface ToastNotification {
+  id: string;
+  type: 'cart' | 'shelf' | 'wishlist' | 'info' | 'success';
+  message: string;
+  book?: Book;
+  quantity?: number;
+}
+
 interface StoreContextType {
   // Navigation & Views
   activeView: 'home' | 'shelf' | 'marketplace' | 'profile' | 'wishlist' | 'orders' | 'admin';
@@ -52,8 +60,21 @@ interface StoreContextType {
   setIsCheckoutOpen: (open: boolean) => void;
   isSellUsedOpen: boolean;
   setIsSellUsedOpen: (open: boolean) => void;
+  isAuthModalOpen: boolean;
+  setIsAuthModalOpen: (open: boolean) => void;
   selectedOrderForDetails: Order | null;
   setSelectedOrderForDetails: (order: Order | null) => void;
+
+  // Toast state
+  toast: ToastNotification | null;
+  showToast: (notification: Omit<ToastNotification, 'id'>) => void;
+  hideToast: () => void;
+
+  // Authentication & Session
+  isAuthenticated: boolean;
+  login: (email: string, role?: 'user' | 'admin', name?: string) => void;
+  signup: (email: string, role?: 'user' | 'admin', name?: string, goal?: number) => void;
+  logout: () => void;
 
   // Data Collections
   books: Book[];
@@ -162,7 +183,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isAiRecommendOpen, setIsAiRecommendOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSellUsedOpen, setIsSellUsedOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<Order | null>(null);
+
+  // Toast feedback state
+  const [toast, setToast] = useState<ToastNotification | null>(null);
+
+  const showToast = (notification: Omit<ToastNotification, 'id'>) => {
+    setToast({
+      ...notification,
+      id: `toast-${Date.now()}`
+    });
+  };
+
+  const hideToast = () => {
+    setToast(null);
+  };
+
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => loadFromStorage('isAuthenticated', true));
 
   // Core Data States with localStorage persistence
   const [books, setBooks] = useState<Book[]>(() => loadFromStorage('books', INITIAL_BOOKS));
@@ -199,6 +238,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => saveToStorage('returnRequests', returnRequests), [returnRequests]);
   useEffect(() => saveToStorage('usedListings', usedListings), [usedListings]);
   useEffect(() => saveToStorage('reviews', reviews), [reviews]);
+  useEffect(() => saveToStorage('isAuthenticated', isAuthenticated), [isAuthenticated]);
 
   // Cart operations
   const addToCart = (book: Book, quantity: number = 1) => {
@@ -210,6 +250,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         );
       }
       return [...prev, { book, quantity }];
+    });
+
+    showToast({
+      type: 'cart',
+      message: `Added "${book.title}" to cart!`,
+      book,
+      quantity
     });
   };
 
@@ -303,6 +350,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
       setShelf((prev) => [newItem, ...prev]);
     }
+
+    showToast({
+      type: 'shelf',
+      message: `Saved "${book.title}" to ${status} bookshelf!`,
+      book
+    });
   };
 
   const updateShelfStatus = (bookId: string, newStatus: ShelfStatus) => {
@@ -341,11 +394,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Wishlist
   const toggleWishlist = (bookId: string) => {
+    const targetBook = books.find((b) => b.id === bookId);
     setUser((prev) => {
       const exists = prev.wishlist.includes(bookId);
       const newWishlist = exists
         ? prev.wishlist.filter((id) => id !== bookId)
         : [...prev.wishlist, bookId];
+      
+      showToast({
+        type: 'wishlist',
+        message: exists
+          ? `Removed "${targetBook?.title || 'Book'}" from wishlist`
+          : `Added "${targetBook?.title || 'Book'}" to wishlist`,
+        book: targetBook
+      });
+
       return { ...prev, wishlist: newWishlist };
     });
   };
@@ -356,6 +419,54 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateUserProfile = (updates: Partial<UserProfile>) => {
     setUser((prev) => ({ ...prev, ...updates }));
+  };
+
+  // Authentication Handlers
+  const login = (email: string, role: 'user' | 'admin' = 'user', name?: string) => {
+    const formattedEmail = email.trim().toLowerCase();
+    const isSpecialAdmin = role === 'admin' || formattedEmail.includes('admin');
+    setUser((prev) => ({
+      ...prev,
+      email: formattedEmail,
+      role: isSpecialAdmin ? 'admin' : 'user',
+      uid: `user-${formattedEmail.replace(/[^a-zA-Z0-9]/g, '_')}`
+    }));
+    setIsAuthenticated(true);
+    setIsAuthModalOpen(false);
+  };
+
+  const signup = (email: string, role: 'user' | 'admin' = 'user', name?: string, goal: number = 20) => {
+    const formattedEmail = email.trim().toLowerCase();
+    const isSpecialAdmin = role === 'admin' || formattedEmail.includes('admin');
+    const newUser: UserProfile = {
+      uid: `user-${Date.now()}`,
+      email: formattedEmail,
+      role: isSpecialAdmin ? 'admin' : 'user',
+      readingStreak: 1,
+      yearlyGoal: goal,
+      booksFinishedThisYear: 0,
+      unlockedBadges: ['First Step'],
+      wishlist: []
+    };
+    setUser(newUser);
+    setIsAuthenticated(true);
+    setIsAuthModalOpen(false);
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    // Switch to guest/unauthenticated state
+    setUser({
+      uid: 'guest',
+      email: 'guest@bookstore.dev',
+      role: 'user',
+      readingStreak: 0,
+      yearlyGoal: 10,
+      booksFinishedThisYear: 0,
+      unlockedBadges: [],
+      wishlist: []
+    });
+    setActiveView('home');
   };
 
   // Orders
@@ -668,8 +779,17 @@ Would you like to focus on a particular genre like Fiction, Sci-Fi, or Non-Ficti
         setIsCheckoutOpen,
         isSellUsedOpen,
         setIsSellUsedOpen,
+        isAuthModalOpen,
+        setIsAuthModalOpen,
         selectedOrderForDetails,
         setSelectedOrderForDetails,
+        toast,
+        showToast,
+        hideToast,
+        isAuthenticated,
+        login,
+        signup,
+        logout,
         books,
         categories,
         coupons,

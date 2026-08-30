@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
-import { Crown, Star, ShoppingBag, BookMarked, Sparkles } from 'lucide-react';
+import { Crown, Star, ShoppingBag, BookMarked, Sparkles, Check } from 'lucide-react';
 
 export const BookOfTheDay: React.FC = () => {
   const { books, setSelectedBook, addToCart, addToShelf } = useStore();
+  const [isAdded, setIsAdded] = useState(false);
 
   const bookOfDay = books.find((b) => b.isBookOfDay) || books[0];
   if (!bookOfDay) return null;
+
+  const handleAddToCart = () => {
+    addToCart(bookOfDay, 1);
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 1800);
+  };
 
   const currentPrice =
     bookOfDay.flashSalePrice &&
@@ -93,11 +100,24 @@ export const BookOfTheDay: React.FC = () => {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 id="book-of-day-cart-btn"
-                onClick={() => addToCart(bookOfDay, 1)}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-sm shadow-lg shadow-amber-500/20 transition cursor-pointer"
+                onClick={handleAddToCart}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-all cursor-pointer ${
+                  isAdded
+                    ? 'bg-emerald-600 text-white shadow-emerald-600/30'
+                    : 'bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-amber-500/20'
+                }`}
               >
-                <ShoppingBag className="w-4 h-4" />
-                <span>Add to Cart</span>
+                {isAdded ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Added to Cart! ✓</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>Add to Cart</span>
+                  </>
+                )}
               </button>
 
               <button

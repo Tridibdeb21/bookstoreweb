@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Book } from '../../types';
 import { useStore } from '../../context/StoreContext';
-import { Star, Heart, ShoppingBag, Zap } from 'lucide-react';
+import { Star, Heart, ShoppingBag, Zap, Check } from 'lucide-react';
 
 interface BookCardProps {
   book: Book;
@@ -9,6 +9,7 @@ interface BookCardProps {
 
 export const BookCard: React.FC<BookCardProps> = ({ book }) => {
   const { setSelectedBook, addToCart, toggleWishlist, isInWishlist } = useStore();
+  const [isAdded, setIsAdded] = useState(false);
   const isWishlisted = isInWishlist(book.id);
 
   const hasActiveFlashSale =
@@ -17,6 +18,15 @@ export const BookCard: React.FC<BookCardProps> = ({ book }) => {
     book.flashSaleExpiry > Date.now();
 
   const currentPrice = hasActiveFlashSale ? book.flashSalePrice! : book.price;
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart(book, 1);
+    setIsAdded(true);
+    setTimeout(() => {
+      setIsAdded(false);
+    }, 1500);
+  };
 
   return (
     <div
@@ -111,14 +121,15 @@ export const BookCard: React.FC<BookCardProps> = ({ book }) => {
 
           <button
             id={`quick-add-cart-${book.id}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              addToCart(book, 1);
-            }}
-            className="p-2 rounded-xl bg-stone-900 hover:bg-amber-500 text-white hover:text-stone-950 transition-colors shadow-sm cursor-pointer"
-            title="Add to Cart"
+            onClick={handleAddToCart}
+            className={`p-2 rounded-xl transition-all shadow-sm cursor-pointer ${
+              isAdded
+                ? 'bg-emerald-600 text-white scale-110'
+                : 'bg-stone-900 hover:bg-amber-500 text-white hover:text-stone-950'
+            }`}
+            title={isAdded ? 'Added to Cart!' : 'Add to Cart'}
           >
-            <ShoppingBag className="w-4 h-4" />
+            {isAdded ? <Check className="w-4 h-4" /> : <ShoppingBag className="w-4 h-4" />}
           </button>
         </div>
       </div>
